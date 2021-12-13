@@ -39,6 +39,12 @@ open class KoverExtension(objects: ObjectFactory) {
      */
     @get:Input
     val generateReportOnCheck: Property<Boolean> = objects.property(Boolean::class.java)
+
+    /**
+     * Specifies whether the .classes from 'android' and 'com.android' packages should be included
+     */
+    @get:Input
+    public var instrumentAndroidPackage: Boolean = false
 }
 
 public enum class CoverageEngine {

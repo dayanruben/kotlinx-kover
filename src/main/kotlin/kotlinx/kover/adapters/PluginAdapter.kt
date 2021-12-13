@@ -18,6 +18,12 @@ private fun createAdapters(): List<CompilationPluginAdapter> {
     )
 }
 
+val Project.androidPluginIsApplied: Boolean
+get() {
+    return plugins.findPlugin("android") != null || plugins.findPlugin("kotlin-android") != null
+}
+
+
 fun Project.collectDirs(): Pair<FileCollection, FileCollection> {
     val srcDirs = HashMap<String, File>()
     val outDirs = HashMap<String, File>()

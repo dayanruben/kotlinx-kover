@@ -19,6 +19,7 @@ import kotlinx.kover.engines.intellij.*
 import kotlinx.kover.engines.jacoco.*
 import kotlinx.kover.tasks.*
 import org.gradle.api.*
+import org.gradle.api.provider.*
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.testing.*
 import org.gradle.process.*
@@ -230,11 +231,16 @@ class KoverPlugin : Plugin<Project> {
             else
                 null
         })
+
+        val excludeAndroidPackage =
+            project.provider { project.androidPluginIsApplied && !koverExtension.instrumentAndroidPackage }
+
         jvmArgumentProviders.add(
             CoverageArgumentProvider(
                 jacocoAgent,
                 intellijAgent,
                 this,
+                excludeAndroidPackage,
                 koverExtension,
                 taskExtension
             )
@@ -248,6 +254,7 @@ private class CoverageArgumentProvider(
     private val jacocoAgent: JacocoAgent,
     private val intellijAgent: IntellijAgent,
     private val task: Task,
+    @get:Input val excludeAndroidPackage: Provider<Boolean>,
     @get:Nested val koverExtension: KoverExtension,
     @get:Nested val taskExtension: KoverTaskExtension
 ) : CommandLineArgumentProvider, Named {
@@ -260,6 +267,19 @@ private class CoverageArgumentProvider(
     override fun asArguments(): MutableIterable<String> {
         if (!taskExtension.isEnabled || !koverExtension.isEnabled) {
             return mutableListOf()
+        }
+
+        if (excludeAndroidPackage.get()) {
+            /*
+            The instrumentation of android classes often causes errors when using third-party
+            frameworks (see https://github.com/Kotlin/kotlinx-kover/issues/89).
+
+            Because android classes are not part of the project, in any case they do not get into the report,
+            and they can be excluded from instrumentation.
+
+            FIXME Remove this code if the IntelliJ Agent stops changing project classes during instrumentation
+             */
+            taskExtension.excludes = taskExtension.excludes + "android.*" + "com.android.*"
         }
 
         return if (koverExtension.coverageEngine.get() == CoverageEngine.INTELLIJ) {
